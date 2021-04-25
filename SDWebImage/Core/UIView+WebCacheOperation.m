@@ -23,6 +23,7 @@ typedef NSMapTable<NSString *, id<SDWebImageOperation>> SDOperationsDictionary;
         if (operations) {
             return operations;
         }
+        //key 强引用 value 弱引用
         operations = [[NSMapTable alloc] initWithKeyOptions:NSPointerFunctionsStrongMemory valueOptions:NSPointerFunctionsWeakMemory capacity:0];
         objc_setAssociatedObject(self, &loadOperationKey, operations, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         return operations;
@@ -55,16 +56,20 @@ typedef NSMapTable<NSString *, id<SDWebImageOperation>> SDOperationsDictionary;
 - (void)sd_cancelImageLoadOperationWithKey:(nullable NSString *)key {
     if (key) {
         // Cancel in progress downloader from queue
+        //[self class] : operation
         SDOperationsDictionary *operationDictionary = [self sd_operationDictionary];
         id<SDWebImageOperation> operation;
         
         @synchronized (self) {
+            
             operation = [operationDictionary objectForKey:key];
         }
         if (operation) {
+            //查看是否符合协议
             if ([operation conformsToProtocol:@protocol(SDWebImageOperation)]) {
                 [operation cancel];
             }
+            //效率最低的锁。
             @synchronized (self) {
                 [operationDictionary removeObjectForKey:key];
             }

@@ -56,6 +56,7 @@
         [SDWebImageDownloader sharedDownloader].config.username = @"httpwatch";
         [SDWebImageDownloader sharedDownloader].config.password = @"httpwatch01";
         [[SDWebImageDownloader sharedDownloader] setValue:@"SDWebImage Demo" forHTTPHeaderField:@"AppName"];
+        //这个有点像是AFN。 AFN的请求策略也是这个。
         [SDWebImageDownloader sharedDownloader].config.executionOrder = SDWebImageDownloaderLIFOExecutionOrder;
         
         self.objects = [NSMutableArray arrayWithObjects:
@@ -105,7 +106,9 @@
     MyCustomTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     if (cell == nil) {
         cell = [[MyCustomTableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellIdentifier];
+        //image加载完成之后显示出来的方式
         cell.customImageView.sd_imageTransition = SDWebImageTransition.fadeTransition;
+        //图片加载的菊花
         cell.customImageView.sd_imageIndicator = SDWebImageActivityIndicator.grayIndicator;
     }
     

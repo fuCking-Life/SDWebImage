@@ -61,6 +61,7 @@
         mutableContext = [NSMutableDictionary dictionary];
     }
     mutableContext[SDWebImageContextAnimatedImageClass] = animatedImageClass;
+    //所有的view 都是直接用的UIView+Cache的入口
     [self sd_internalSetImageWithURL:url
                     placeholderImage:placeholder
                              options:options

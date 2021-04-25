@@ -46,6 +46,7 @@ const int64_t SDWebImageProgressUnitCountUnknown = 1LL;
     objc_setAssociatedObject(self, @selector(sd_imageProgress), sd_imageProgress, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
+//图片加载的入口
 - (void)sd_internalSetImageWithURL:(nullable NSURL *)url
                   placeholderImage:(nullable UIImage *)placeholder
                            options:(SDWebImageOptions)options
@@ -62,21 +63,26 @@ const int64_t SDWebImageProgressUnitCountUnknown = 1LL;
     NSString *validOperationKey = context[SDWebImageContextSetImageOperationKey];
     if (!validOperationKey) {
         // pass through the operation key to downstream, which can used for tracing operation or image view class
+        //根据类跟operation做绑定。
         validOperationKey = NSStringFromClass([self class]);
         SDWebImageMutableContext *mutableContext = [context mutableCopy];
         mutableContext[SDWebImageContextSetImageOperationKey] = validOperationKey;
         context = [mutableContext copy];
     }
     self.sd_latestOperationKey = validOperationKey;
+    //取消下载
     [self sd_cancelImageLoadOperationWithKey:validOperationKey];
     self.sd_imageURL = url;
     
     if (!(options & SDWebImageDelayPlaceholder)) {
+        
+        //回到主线程 设置placeholder
+        // 这里判断的是队列的名字是否是主队列。
+# warning - 不太理解
         dispatch_main_async_safe(^{
             [self sd_setImage:placeholder imageData:nil basedOnClassOrViaCustomSetImageBlock:setImageBlock cacheType:SDImageCacheTypeNone imageURL:url];
         });
     }
-    
     if (url) {
         // reset the progress
         NSProgress *imageProgress = objc_getAssociatedObject(self, @selector(sd_imageProgress));
@@ -87,9 +93,11 @@ const int64_t SDWebImageProgressUnitCountUnknown = 1LL;
         
 #if SD_UIKIT || SD_MAC
         // check and start image indicator
+        //菊花可以在外面设置。在indicator中
         [self sd_startImageIndicator];
         id<SDWebImageIndicator> imageIndicator = self.sd_imageIndicator;
 #endif
+        
         SDWebImageManager *manager = context[SDWebImageContextCustomManager];
         if (!manager) {
             manager = [SDWebImageManager sharedManager];
@@ -99,7 +107,7 @@ const int64_t SDWebImageProgressUnitCountUnknown = 1LL;
             mutableContext[SDWebImageContextCustomManager] = nil;
             context = [mutableContext copy];
         }
-        
+        //监听进度的
         SDImageLoaderProgressBlock combinedProgressBlock = ^(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL) {
             if (imageProgress) {
                 imageProgress.totalUnitCount = expectedSize;
@@ -122,6 +130,7 @@ const int64_t SDWebImageProgressUnitCountUnknown = 1LL;
             }
         };
         @weakify(self);
+        //manager 开启下载
         id <SDWebImageOperation> operation = [manager loadImageWithURL:url options:options context:context progress:combinedProgressBlock completed:^(UIImage *image, NSData *data, NSError *error, SDImageCacheType cacheType, BOOL finished, NSURL *imageURL) {
             @strongify(self);
             if (!self) { return; }
@@ -209,6 +218,7 @@ const int64_t SDWebImageProgressUnitCountUnknown = 1LL;
                 callCompletedBlockClosure();
             });
         }];
+        //把operation和key做绑定
         [self sd_setImageLoadOperation:operation forKey:validOperationKey];
     } else {
 #if SD_UIKIT || SD_MAC

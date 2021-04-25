@@ -178,18 +178,20 @@ static id<SDImageLoader> _defaultImageLoader;
     if ([url isKindOfClass:NSString.class]) {
         url = [NSURL URLWithString:(NSString *)url];
     }
-
+    
     // Prevents app crashing on argument type error like sending NSNull instead of NSURL
     if (![url isKindOfClass:NSURL.class]) {
         url = nil;
     }
-
+    //组合体：包含了 cache和loader，实现了cancel方法而已。
     SDWebImageCombinedOperation *operation = [SDWebImageCombinedOperation new];
     operation.manager = self;
 
     BOOL isFailedUrl = NO;
     if (url) {
+        //互斥锁
         SD_LOCK(_failedURLsLock);
+        //查看是否在黑名单里
         isFailedUrl = [self.failedURLs containsObject:url];
         SD_UNLOCK(_failedURLsLock);
     }
@@ -202,6 +204,7 @@ static id<SDImageLoader> _defaultImageLoader;
     }
 
     SD_LOCK(_runningOperationsLock);
+#warning - 这个是哪里来的？？？
     [self.runningOperations addObject:operation];
     SD_UNLOCK(_runningOperationsLock);
     
@@ -697,6 +700,7 @@ static id<SDImageLoader> _defaultImageLoader;
 @implementation SDWebImageCombinedOperation
 
 - (void)cancel {
+    //加锁
     @synchronized(self) {
         if (self.isCancelled) {
             return;
