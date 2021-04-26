@@ -200,6 +200,7 @@ static NSString * _defaultDiskCacheDirectory;
         }
         return;
     }
+    //硬盘缓存
     dispatch_async(self.ioQueue, ^{
         @autoreleasepool {
             NSData *data = imageData;
@@ -216,9 +217,11 @@ static NSString * _defaultDiskCacheDirectory;
                         format = SDImageFormatGIF;
                     } else {
                         // If we do not have any data to detect image format, check whether it contains alpha channel to use PNG or JPEG format
+                        //如果不是动画图片，就看看有没有 alpha通道，来决定类型是 png还是jpeg
                         format = [SDImageCoderHelper CGImageContainsAlpha:image.CGImage] ? SDImageFormatPNG : SDImageFormatJPEG;
                     }
                 }
+                //根据上面的format和image编码
                 data = [[SDImageCodersManager sharedManager] encodedDataWithImage:image format:format options:nil];
             }
             [self _storeImageDataToDisk:data forKey:key];
@@ -489,12 +492,15 @@ static NSString * _defaultDiskCacheDirectory;
     }
     
     // First check the in-memory cache...
+    //查内存缓存
     UIImage *image;
     if (queryCacheType != SDImageCacheTypeDisk) {
         image = [self imageFromMemoryCacheForKey:key];
     }
     
     if (image) {
+        //把图片找到之后还要看看这个图片有没有什么别的要求。
+        //要求：只显示第一帧
         if (options & SDImageCacheDecodeFirstFrameOnly) {
             // Ensure static image
             Class animatedImageClass = image.class;
@@ -524,6 +530,7 @@ static NSString * _defaultDiskCacheDirectory;
     }
     
     // Second check the disk cache...
+    //查硬盘
     NSOperation *operation = [NSOperation new];
     // Check whether we need to synchronously query disk
     // 1. in-memory cache hit & memoryDataSync
@@ -553,6 +560,7 @@ static NSString * _defaultDiskCacheDirectory;
                 // decode image data only if in-memory cache missed
                 diskImage = [self diskImageForKey:key data:diskData options:options context:context];
                 if (shouldCacheToMomery && diskImage && self.config.shouldCacheImagesInMemory) {
+                    //缓存到memory
                     NSUInteger cost = diskImage.sd_memoryCost;
                     [self.memoryCache setObject:diskImage forKey:key cost:cost];
                 }
@@ -761,7 +769,7 @@ static NSString * _defaultDiskCacheDirectory;
 - (id<SDWebImageOperation>)queryImageForKey:(NSString *)key options:(SDWebImageOptions)options context:(nullable SDWebImageContext *)context completion:(nullable SDImageCacheQueryCompletionBlock)completionBlock {
     return [self queryImageForKey:key options:options context:context cacheType:SDImageCacheTypeAll completion:completionBlock];
 }
-
+//查缓存
 - (id<SDWebImageOperation>)queryImageForKey:(NSString *)key options:(SDWebImageOptions)options context:(nullable SDWebImageContext *)context cacheType:(SDImageCacheType)cacheType completion:(nullable SDImageCacheQueryCompletionBlock)completionBlock {
     SDImageCacheOptions cacheOptions = 0;
     if (options & SDWebImageQueryMemoryData) cacheOptions |= SDImageCacheQueryMemoryData;
@@ -772,10 +780,12 @@ static NSString * _defaultDiskCacheDirectory;
     if (options & SDWebImageDecodeFirstFrameOnly) cacheOptions |= SDImageCacheDecodeFirstFrameOnly;
     if (options & SDWebImagePreloadAllFrames) cacheOptions |= SDImageCachePreloadAllFrames;
     if (options & SDWebImageMatchAnimatedImageClass) cacheOptions |= SDImageCacheMatchAnimatedImageClass;
-    
+    //1. 先memory 后disk
+    //2. 缓存查完还要做解码。
     return [self queryCacheOperationForKey:key options:cacheOptions context:context cacheType:cacheType done:completionBlock];
 }
 
+//根据缓存策略缓存图片
 - (void)storeImage:(UIImage *)image imageData:(NSData *)imageData forKey:(nullable NSString *)key cacheType:(SDImageCacheType)cacheType completion:(nullable SDWebImageNoParamsBlock)completionBlock {
     switch (cacheType) {
         case SDImageCacheTypeNone: {

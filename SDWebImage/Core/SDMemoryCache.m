@@ -58,7 +58,7 @@ static void * SDMemoryCacheContext = &SDMemoryCacheContext;
     SDImageCacheConfig *config = self.config;
     self.totalCostLimit = config.maxMemoryCost;
     self.countLimit = config.maxMemoryCount;
-
+    
     [config addObserver:self forKeyPath:NSStringFromSelector(@selector(maxMemoryCost)) options:0 context:SDMemoryCacheContext];
     [config addObserver:self forKeyPath:NSStringFromSelector(@selector(maxMemoryCount)) options:0 context:SDMemoryCacheContext];
 
@@ -81,6 +81,8 @@ static void * SDMemoryCacheContext = &SDMemoryCacheContext;
 }
 
 // `setObject:forKey:` just call this with 0 cost. Override this is enough
+//放入到缓存中，并且用weakcache存储缓存。
+//防止nscache的缓存被清掉之后，找不到图片，还可以通过weakcache找到对象。
 - (void)setObject:(id)obj forKey:(id)key cost:(NSUInteger)g {
     [super setObject:obj forKey:key cost:g];
     if (!self.config.shouldUseWeakMemoryCache) {

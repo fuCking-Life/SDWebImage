@@ -65,6 +65,7 @@ UIImage * _Nullable SDImageCacheDecodeImageData(NSData * _Nonnull imageData, NSS
         }
     }
     if (!image) {
+        //图像解码
         image = [imageCoder decodedImageWithData:imageData options:coderOptions];
     }
     if (image) {
@@ -77,6 +78,7 @@ UIImage * _Nullable SDImageCacheDecodeImageData(NSData * _Nonnull imageData, NSS
             shouldDecode = NO;
         }
         if (shouldDecode) {
+#warning 上面有过一次解码 这个helper是干什么使的。
             image = [SDImageCoderHelper decodedImageWithImage:image];
         }
     }
